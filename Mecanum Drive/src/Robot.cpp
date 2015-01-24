@@ -66,7 +66,8 @@ class Robot: public SampleRobot
 			//-------------------------------------------------------------------//
 
 			//Used to determine the gyro change rate prior to moving.
-			if (true) {
+			if (true)
+			{
 			float gyroStart = gyro.GetAngle();
 			Wait(1.0);
 			float gyroEnd = gyro.GetAngle();
