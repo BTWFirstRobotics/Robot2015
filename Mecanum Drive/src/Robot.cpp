@@ -23,6 +23,7 @@ class Robot: public SampleRobot
 
 	public:
 		Robot() :
+			//assign channels on the roboRio
 				frontLeft(4),
 				backLeft(5),
 				frontRight(2),
