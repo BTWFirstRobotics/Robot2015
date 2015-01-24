@@ -23,6 +23,7 @@ class Robot: public SampleRobot
 
 	public:
 		Robot() :
+			/* assign jaguars, victors and gyro to channels on the roborio */
 				frontLeft(4),
 				backLeft(5),
 				frontRight(2),
