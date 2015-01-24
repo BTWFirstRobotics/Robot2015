@@ -23,7 +23,6 @@ class Robot: public SampleRobot
 
 	public:
 		Robot() :
-			/* assign jaguars, victors and gyro to channels on the roborio */
 				frontLeft(4),
 				backLeft(5),
 				frontRight(2),
@@ -62,12 +61,28 @@ class Robot: public SampleRobot
 			float y;
 			float z;
 
-			SmartDashboard::PutNumber("Gyro Start", gyro.GetAngle());
+			float gyroChangeRate;
+
+			//-------------------------------------------------------------------//
+
+			//Used to determine the gyro change rate prior to moving.
+			if (true)
+			{
+			float gyroStart = gyro.GetAngle();
 			Wait(1.0);
-			SmartDashboard::PutNumber("Gyro End", gyro.GetAngle());
+			float gyroEnd = gyro.GetAngle();
+			gyroChangeRate = gyroEnd - gyroStart;
+
+			SmartDashboard::PutNumber("Gyro Start", gyroStart);
+			SmartDashboard::PutNumber("Gyro End", gyroEnd);
+			}
+
+			SmartDashboard::PutNumber("Gyro Rate", gyroChangeRate);
 
 			bool noRotFlag = false;
 			float consGyro;
+
+			//-------------------------------------------------------------------//
 
 			while (IsOperatorControl() && IsEnabled())
 			{
@@ -92,6 +107,8 @@ class Robot: public SampleRobot
 				{
 					z = 0.0;
 				}
+
+				//---------------------------------------------------------------//
 
 				if (y > .4)
 				{
