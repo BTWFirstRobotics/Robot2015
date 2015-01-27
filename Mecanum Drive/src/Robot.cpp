@@ -20,6 +20,7 @@ class Robot: public SampleRobot
 		RobotDrive robotDrive;	// robot drive system
 		Joystick stick; // only joystick
 		Joystick stick2; // controller
+		AxisCamera camera; //Not used yet, need to find more constructor documentation
 
 	public:
 		Robot() :
