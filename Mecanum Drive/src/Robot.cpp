@@ -20,7 +20,8 @@ class Robot: public SampleRobot
 		RobotDrive robotDrive;	// robot drive system
 		Joystick stick; // only joystick
 		Joystick stick2; // controller
-		AxisCamera camera; //Not used yet, need to find more constructor documentation
+		AxisCamera camera;
+		Image* img;
 
 	public:
 		Robot() :
@@ -35,7 +36,8 @@ class Robot: public SampleRobot
 				robotDrive(frontLeft, backLeft,
 						   frontRight, backRight),	// these must be initialized in the same order
 				stick(0), // as they are declared above.
-				stick2(1)
+				stick2(1),
+				camera("10.12.9.11") //camera set to IP address
 		{
 			robotDrive.SetExpiration(0.1);
 
@@ -58,6 +60,7 @@ class Robot: public SampleRobot
 			robotDrive.SetSafetyEnabled(false);
 			robotDrive.SetMaxOutput(250);
 			gyro.Reset();
+			img = imaqCreateImage(IMAQ_IMAGE_RGB, 0); //Basic image format initialization
 
 			float x;
 			float y;
@@ -88,9 +91,18 @@ class Robot: public SampleRobot
 
 			while (IsOperatorControl() && IsEnabled())
 			{
+				camera.GetImage(img); // set data received from camera to img
+									  // look at nivision.h for image drawing functions
+				imaqDrawShapeOnImage(img, img, { 10, 10, 100, 100 }, DrawMode::IMAQ_DRAW_VALUE, ShapeMode::IMAQ_SHAPE_OVAL, 0.0f);
+				//draw ellipse on generated image
+
+				CameraServer::GetInstance()->SetImage(img); //send modified image back to camera
+															// Not currently working, will look into
+
+				//--------------------------------------------------------------------------------
+
 	        	// Use the joystick X axis for lateral movement, Y axis for forward movement, and Z axis for rotation.
 	        	// This sample does not use field-oriented drive, so the gyro input is set to zero.
-
 				x = -stick.GetX();
 				y = -stick.GetTwist();
 				z = -stick.GetY();
