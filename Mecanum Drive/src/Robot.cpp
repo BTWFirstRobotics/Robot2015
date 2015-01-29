@@ -22,6 +22,8 @@ class Robot: public SampleRobot
 		Joystick stick2; // controller
 		AxisCamera camera;
 		Image* img;
+		AnalogInput gyroAI;
+		Timer timer;
 
 	public:
 		Robot() :
@@ -37,7 +39,8 @@ class Robot: public SampleRobot
 						   frontRight, backRight),	// these must be initialized in the same order
 				stick(0), // as they are declared above.
 				stick2(1),
-				camera("10.12.9.11") //camera set to IP address
+				camera("10.12.9.11"), //camera set to IP address
+				gyroAI(0)
 		{
 			robotDrive.SetExpiration(0.1);
 
@@ -50,6 +53,9 @@ class Robot: public SampleRobot
 			frontLeft.EnableControl();
 			frontRight.EnableControl();
 			backRight.EnableControl();
+
+			gyroAI.SetAverageBits(2);
+			gyroAI.SetOversampleBits(4);
 		}
 
 		/**
@@ -57,6 +63,8 @@ class Robot: public SampleRobot
 		 */
 		void OperatorControl()
 		{
+			timer.Reset();
+			timer.Start();
 			robotDrive.SetSafetyEnabled(false);
 			robotDrive.SetMaxOutput(250);
 			gyro.Reset();
@@ -84,7 +92,7 @@ class Robot: public SampleRobot
 
 			SmartDashboard::PutNumber("Gyro Rate", gyroChangeRate);
 
-			bool noRotFlag = false;
+			bool notRotating = false;
 			float consGyro;
 
 			//-------------------------------------------------------------------//
@@ -93,7 +101,7 @@ class Robot: public SampleRobot
 			{
 				camera.GetImage(img); // set data received from camera to img
 									  // look at nivision.h for image drawing functions
-				imaqDrawShapeOnImage(img, img, { 10, 10, 100, 100 }, DrawMode::IMAQ_DRAW_VALUE, ShapeMode::IMAQ_SHAPE_OVAL, 0.0f);
+				imaqDrawShapeOnImage(img, img, { 10, 10, 100, 100 }, DrawMode::IMAQ_DRAW_VALUE, ShapeMode::IMAQ_SHAPE_OVAL, 0.f);
 				//draw ellipse on generated image
 
 				CameraServer::GetInstance()->SetImage(img); //send modified image back to camera
@@ -139,14 +147,14 @@ class Robot: public SampleRobot
 				if (z != 0.0) // If the driver is rotating
 				{
 					//robotDrive.MecanumDrive_Cartesian(x, y, z); // Mecanum Drive using the x, y, z modified from the deadzone code
-					noRotFlag = false;
+					notRotating = false;
 				}
 
 				else if ((z == 0) && ((x != 0.0) || (y != 0.0))) // If no rotation, and driver is
 				{												 // moving on x or y axis
-					if (noRotFlag == false)
+					if (notRotating == false)
 					{
-						noRotFlag = true;
+						notRotating = true;
 						consGyro = gyro.GetAngle();
 					}
 
@@ -169,6 +177,11 @@ class Robot: public SampleRobot
 					z = z/2;
 				}
 
+				if(stick.GetRawButton(6))
+				{
+					gyro.Reset();
+				}
+
 				robotDrive.MecanumDrive_Cartesian(x, y, z);
 
 				//-------------------------------------------------------------//
@@ -176,22 +189,37 @@ class Robot: public SampleRobot
 				SmartDashboard::PutNumber("Joystick X", x);
 				SmartDashboard::PutNumber("Joystick Y", y);
 				SmartDashboard::PutNumber("Joystick Z", z);
-				SmartDashboard::PutNumber("Gyro Angle", -gyro.GetAngle());
+				SmartDashboard::PutNumber("Gyro Angle", -gyro.GetAngle() - (timer.Get()*gyroChangeRate));
+				SmartDashboard::PutNumber("Gyro Voltage", gyroAI.GetVoltage());
+				SmartDashboard::PutNumber("Gyro.GetRate", gyro.GetRate());
 
-				if(stick2.GetRawButton(5))
+				if(stick2.GetRawButton(3))
 				{
-					Victor1.Set(1.0);
+					Victor1.Set(-0.4);
+					Victor2.Set(0.4);
 				}
-				else if (stick2.GetRawAxis(2) >= 0.5)
+				else if (stick2.GetRawButton(2))
+				{
+					Victor1.Set(0.4);
+					Victor2.Set(-0.4);
+				}
+				else if(stick2.GetRawButton(1))
 				{
 					Victor1.Set(-1.0);
+					Victor2.Set(1.0);
+				}
+				else if (stick2.GetRawButton(4))
+				{
+					Victor1.Set(1.0);
+					Victor2.Set(-1.0);
 				}
 				else
 				{
 					Victor1.Set(0);
+					Victor2.Set(0);
 				}
 
-				if(stick2.GetRawButton(6))
+				/*if(stick2.GetRawButton(6))
 				{
 					Victor2.Set(1.0);
 				}
@@ -202,7 +230,7 @@ class Robot: public SampleRobot
 				else
 				{
 					Victor2.Set(0);
-				}
+				}*/
 
 				Wait(0.005); // wait 5ms to avoid hogging CPU cycles
 			}
