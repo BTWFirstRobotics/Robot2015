@@ -1,4 +1,5 @@
 #include "WPILib.h"
+#include <vector.h>
 
 /**
  * This is a demo program showing how to use Mecanum control with the RobotDrive class.
@@ -21,7 +22,7 @@ class Robot: public SampleRobot
 		Joystick stick; // only joystick
 		Joystick stick2; // controller
 		AxisCamera camera;
-		Image* img;
+		ColorImage* img;
 		AnalogInput gyroAI;
 		Timer timer;
 
@@ -56,6 +57,8 @@ class Robot: public SampleRobot
 
 			gyroAI.SetAverageBits(2);
 			gyroAI.SetOversampleBits(4);
+
+			img = imaqCreateImage(IMAQ_IMAGE_RGB, 0); //Basic image format initialization
 		}
 
 		/**
@@ -68,7 +71,8 @@ class Robot: public SampleRobot
 			robotDrive.SetSafetyEnabled(false);
 			robotDrive.SetMaxOutput(250);
 			gyro.Reset();
-			img = imaqCreateImage(IMAQ_IMAGE_RGB, 0); //Basic image format initialization
+
+			Threshold yellowToteThresholdHSL(70, 80, 230, 255, 127, 179);
 
 			float x;
 			float y;
@@ -97,15 +101,18 @@ class Robot: public SampleRobot
 
 			//-------------------------------------------------------------------//
 
+			//vector<ParticleAnalysisReport> *reports;
+
 			while (IsOperatorControl() && IsEnabled())
 			{
+				//--------------------------------------------------------------------------------
 				camera.GetImage(img); // set data received from camera to img
 									  // look at nivision.h for image drawing functions
-				imaqDrawShapeOnImage(img, img, { 10, 10, 100, 100 }, DrawMode::IMAQ_DRAW_VALUE, ShapeMode::IMAQ_SHAPE_OVAL, 0.f);
-				//draw ellipse on generated image
+				BinaryImage* modifiedImg = img->ThresholdHSL(yellowToteThresholdHSL);
 
-				CameraServer::GetInstance()->SetImage(img); //send modified image back to camera
-															// Not currently working, will look into
+				modifiedImg = modifiedImg->ConvexHull(false);
+
+
 
 				//--------------------------------------------------------------------------------
 
