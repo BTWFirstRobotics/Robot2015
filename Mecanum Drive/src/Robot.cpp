@@ -1,5 +1,4 @@
 #include "WPILib.h"
-#include <vector.h>
 
 /**
  * This is a demo program showing how to use Mecanum control with the RobotDrive class.
@@ -25,6 +24,8 @@ class Robot: public SampleRobot
 		ColorImage* img;
 		AnalogInput gyroAI;
 		Timer timer;
+		BinaryImage* modifiedImg;
+		//vector<ParticleAnalysisReport> *reports;
 
 	public:
 		Robot() :
@@ -58,7 +59,8 @@ class Robot: public SampleRobot
 			gyroAI.SetAverageBits(2);
 			gyroAI.SetOversampleBits(4);
 
-			img = imaqCreateImage(IMAQ_IMAGE_RGB, 0); //Basic image format initialization
+			img = new ColorImage(IMAQ_IMAGE_HSL);
+			modifiedImg = new BinaryImage();
 		}
 
 		/**
@@ -72,11 +74,14 @@ class Robot: public SampleRobot
 			robotDrive.SetMaxOutput(250);
 			gyro.Reset();
 
-			Threshold yellowToteThresholdHSL(70, 80, 230, 255, 127, 179);
+			//Threshold yellowToteThresholdHSL(50, 70, 127, 255, 40, 225);
+			Threshold yellowToteThresholdHSL(50, 70, 127, 255, 40, 225);
 
 			float x;
 			float y;
 			float z;
+
+			int picCount = 0;
 
 			float gyroChangeRate;
 
@@ -101,18 +106,29 @@ class Robot: public SampleRobot
 
 			//-------------------------------------------------------------------//
 
-			//vector<ParticleAnalysisReport> *reports;
-
 			while (IsOperatorControl() && IsEnabled())
 			{
 				//--------------------------------------------------------------------------------
-				camera.GetImage(img); // set data received from camera to img
-									  // look at nivision.h for image drawing functions
-				BinaryImage* modifiedImg = img->ThresholdHSL(yellowToteThresholdHSL);
 
-				modifiedImg = modifiedImg->ConvexHull(false);
+				if(stick.GetRawButton(6) || stick.GetRawButton(3) || stick.GetRawButton(4) || stick.GetRawButton(5))
+				{
+					std::string fileString = "/actualImg" + std::to_string(picCount) + ".bmp";
 
+					camera.GetImage(img); // set data received from camera to img look at nivision.h for image drawing functions
+					img->Write(fileString.c_str());
+					img->Write("/currentShotOriginal.bmp");
 
+					modifiedImg = img->ThresholdHSL(yellowToteThresholdHSL);
+					fileString = "/processedImg" + std::to_string(picCount) + ".bmp";
+
+					modifiedImg = modifiedImg->ConvexHull(false);
+					modifiedImg->Write((fileString.c_str()));
+					modifiedImg->Write("/currentShotModified.bmp");
+
+					picCount++;
+
+					SmartDashboard::PutString("Picture: ", fileString);
+				}
 
 				//--------------------------------------------------------------------------------
 
