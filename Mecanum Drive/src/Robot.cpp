@@ -74,8 +74,18 @@ class Robot: public SampleRobot
 			robotDrive.SetMaxOutput(250);
 			gyro.Reset();
 
-			//Threshold yellowToteThresholdHSL(50, 70, 127, 255, 40, 225);
-			Threshold yellowToteThresholdHSL(50, 70, 127, 255, 40, 225);
+			SmartDashboard::PutNumber("H_Value_Min", 35);
+			SmartDashboard::PutNumber("H_Value_Max", 70);
+			SmartDashboard::PutNumber("S_Value_Min", 100);
+			SmartDashboard::PutNumber("S_Value_Max", 255);
+			SmartDashboard::PutNumber("L_Value_Min", 150);
+			SmartDashboard::PutNumber("L_Value_Max", 250);
+
+
+			//Threshold yellowToteThresholdHSL(50, 70, 127, 255, 40, 225); //works kinda
+			//Threshold yellowToteThresholdHSL(0, 70, 100, 255, 40, 240); //works well
+			Threshold yellowToteThresholdHSL(40, 70, 100, 255, 40, 240);
+			//Threshold yellowToteThresholdRGB(80, 255, 127, 255, 5, 150);
 
 			float x;
 			float y;
@@ -112,22 +122,27 @@ class Robot: public SampleRobot
 
 				if(stick.GetRawButton(6) || stick.GetRawButton(3) || stick.GetRawButton(4) || stick.GetRawButton(5))
 				{
-					std::string fileString = "/actualImg" + std::to_string(picCount) + ".bmp";
+					yellowToteThresholdHSL = Threshold(int(SmartDashboard::GetNumber("H_Value_Min")),
+											  int(SmartDashboard::GetNumber("H_Value_Max")),
+											  int(SmartDashboard::GetNumber("S_Value_Min")),
+											  int(SmartDashboard::GetNumber("S_Value_Max")),
+											  int(SmartDashboard::GetNumber("L_Value_Min")),
+											  int(SmartDashboard::GetNumber("L_Value_Max")));
+					std::string fileString = "/YactualImage" + std::to_string(picCount) + ".bmp";
 
 					camera.GetImage(img); // set data received from camera to img look at nivision.h for image drawing functions
 					img->Write(fileString.c_str());
-					img->Write("/currentShotOriginal.bmp");
 
 					modifiedImg = img->ThresholdHSL(yellowToteThresholdHSL);
-					fileString = "/processedImg" + std::to_string(picCount) + ".bmp";
+					fileString = "/YprocessedImage" + std::to_string(picCount) + ".bmp";
 
 					modifiedImg = modifiedImg->ConvexHull(false);
 					modifiedImg->Write((fileString.c_str()));
-					modifiedImg->Write("/currentShotModified.bmp");
 
 					picCount++;
 
 					SmartDashboard::PutString("Picture: ", fileString);
+					SmartDashboard::PutNumber("Num Particles Seen", modifiedImg->GetNumberParticles());
 				}
 
 				//--------------------------------------------------------------------------------
