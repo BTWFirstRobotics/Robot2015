@@ -84,7 +84,7 @@ class Robot: public SampleRobot
 
 			//Threshold yellowToteThresholdHSL(50, 70, 127, 255, 40, 225); //works kinda
 			//Threshold yellowToteThresholdHSL(0, 70, 100, 255, 40, 240); //works well
-			Threshold yellowToteThresholdHSL(40, 70, 100, 255, 40, 240);
+			Threshold yellowToteThresholdHSL(35, 70, 100, 255, 150, 250);
 			//Threshold yellowToteThresholdRGB(80, 255, 127, 255, 5, 150);
 
 			float x;
@@ -120,6 +120,13 @@ class Robot: public SampleRobot
 			{
 				//--------------------------------------------------------------------------------
 
+				camera.GetImage(img);
+				modifiedImg = img->ThresholdHSL(yellowToteThresholdHSL);
+				modifiedImg = modifiedImg->ConvexHull(false);
+
+				//Below is an ugly function call which returns the width of the largest yellow object
+				SmartDashboard::PutString("Largest Particle Dimensions", std::to_string(modifiedImg->GetOrderedParticleAnalysisReports()->at(0).boundingRect.width) + " x " + std::to_string(modifiedImg->GetOrderedParticleAnalysisReports()->at(0).boundingRect.height) + " pixels");
+
 				if(stick.GetRawButton(6) || stick.GetRawButton(3) || stick.GetRawButton(4) || stick.GetRawButton(5))
 				{
 					yellowToteThresholdHSL = Threshold(int(SmartDashboard::GetNumber("H_Value_Min")),
@@ -130,19 +137,21 @@ class Robot: public SampleRobot
 											  int(SmartDashboard::GetNumber("L_Value_Max")));
 					std::string fileString = "/YactualImage" + std::to_string(picCount) + ".bmp";
 
-					camera.GetImage(img); // set data received from camera to img look at nivision.h for image drawing functions
+					//camera.GetImage(img); // set data received from camera to img look at nivision.h for image drawing functions
 					img->Write(fileString.c_str());
 
-					modifiedImg = img->ThresholdHSL(yellowToteThresholdHSL);
+					//modifiedImg = img->ThresholdHSL(yellowToteThresholdHSL);
 					fileString = "/YprocessedImage" + std::to_string(picCount) + ".bmp";
 
-					modifiedImg = modifiedImg->ConvexHull(false);
+					//modifiedImg = modifiedImg->ConvexHull(false);
 					modifiedImg->Write((fileString.c_str()));
 
 					picCount++;
 
 					SmartDashboard::PutString("Picture: ", fileString);
-					SmartDashboard::PutNumber("Num Particles Seen", modifiedImg->GetNumberParticles());
+					//SmartDashboard::PutNumber("Num Particles Seen", modifiedImg->GetNumberParticles());
+					//Below is an ugly function call which returns the width of the largest yellow object
+					//SmartDashboard::PutNumber("Largest Particle Width", modifiedImg->GetOrderedParticleAnalysisReports()->at(0).boundingRect.width);
 				}
 
 				//--------------------------------------------------------------------------------
