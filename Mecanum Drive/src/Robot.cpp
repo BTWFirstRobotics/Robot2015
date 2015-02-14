@@ -368,7 +368,7 @@ class Robot: public SampleRobot
 		void Autonomous()
 		{
 			Threshold yellowToteThresholdHSL(35, 70, 100, 255, 150, 250);
-
+			//yay
 			ColorImage* img;
 			BinaryImage* modifiedImg;
 
