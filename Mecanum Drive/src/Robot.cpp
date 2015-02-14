@@ -372,7 +372,7 @@ class Robot: public SampleRobot
 			ColorImage* img;
 			BinaryImage* modifiedImg;
 
-			while (IsAutonomou`s() && IsEnabled())
+			while (IsAutonomous() && IsEnabled())
 			{
 
 				if (camera.IsFreshImage())
