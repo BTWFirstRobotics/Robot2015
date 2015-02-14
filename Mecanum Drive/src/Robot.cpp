@@ -6,61 +6,77 @@
 class Robot: public SampleRobot
 {
 	   // Channels for the wheels
-		Victor frontLeft; // 50
-		Talon backLeft; // 4
-		Victor frontRight; // 2
-		Talon backRight; // 3
+	   // 0 is right flipper, 1 is left flipper
+		CANJaguar frontLeft; // 5
+		CANJaguar backLeft; // 4
+		CANJaguar frontRight; // 2
+		CANJaguar backRight; // 0
 		Gyro gyro; // TBD -- MUST BE IN ANALOG INPUT 0 OR 1
-		Victor Victor1;
-		Victor Victor2;
 		RobotDrive robotDrive;	// robot drive system
 		Joystick moveStick; // only joystick
 		Joystick xboxStick; // controller
 		AxisCamera camera;
 		AnalogInput gyroAI;
 		Timer timer;
-		Relay elevator;
-		Servo servo1;
-		//Threshold yellowToteThresholdHSL;
-		//Relay wheelGrabber;
-//
+		CANJaguar elevator;
+		CANJaguar jawWheels;
+		Relay jaws;
+		Relay rightFlipper;
+		Relay leftFlipper;
+		DigitalInput rightJawSwitch;
+		DigitalInput leftJawSwitch;
+		IMAQdxSession session;
+		Image *frame;
+
 	public:
 		Robot():
 			//assign channels on the roboRio
-				frontLeft(9), //4
-				backLeft(7),  //5
-				frontRight(8),//2
-				backRight(6), //3
+				frontLeft(8), //4
+				backLeft(4),  //5
+				frontRight(6),//2
+				backRight(3), //3
 				gyro(0),
-				Victor1(1),
-				Victor2(2),
 				robotDrive(&frontLeft, &backLeft,
-						   &frontRight, &backRight),	// these must be initialized in the same order
-				//robotDrive(9, 7, 8, 6),
-				moveStick(0), // as they are declared above.
+						   &backRight, &frontRight),	// these must be initialized in the same order
+				moveStick(0),                           // as they are declared above.
 				xboxStick(1),
 				camera("10.12.9.11"), //camera set to IP address
 				gyroAI(0),
-				elevator(0, elevator.kBothDirections),
-				servo1(2)
+				elevator(2),
+				jawWheels(7),
+				jaws(3, jaws.kBothDirections),
+				rightFlipper(0, rightFlipper.kBothDirections),
+				leftFlipper(1, leftFlipper.kBothDirections),
+				rightJawSwitch(9),
+				leftJawSwitch(0)
 		{
 			robotDrive.SetExpiration(0.1);
 
-			//yellowToteThresholdHSL(35, 70, 100, 255, 150, 250);
-
-			/*
-			backLeft.SetSpeedMode(backLeft.QuadEncoder, 250, 0.4, 0.01, 0); //  (encoder, revCount,
-			frontLeft.SetSpeedMode(frontLeft.QuadEncoder, 250, 0.4, 0.01, 0);//  P,I,D values)
+			frontLeft.SetSpeedMode(frontLeft.Encoder, 250, 0.4, 0.01, 0);//  P,I,D values)
+			backLeft.SetSpeedMode(backLeft.QuadEncoder, 360, 0.4, 0.01, 0); //  (encoder, revCount,
 			frontRight.SetSpeedMode(frontRight.QuadEncoder, 250, 0.4, 0.01, 0);
 			backRight.SetSpeedMode(backRight.QuadEncoder, 250, 0.4, 0.01, 0);
 
-			backLeft.EnableControl(); //Enable control of Jaguars
+//			frontLeft.SetVoltageMode(frontLeft.QuadEncoder, 250);//  P,I,D values)
+//			backLeft.SetVoltageMode(backLeft.QuadEncoder, 360); //  (encoder, revCount,
+//			frontRight.SetVoltageMode(frontRight.QuadEncoder, 250);
+//			backRight.SetVoltageMode(backRight.QuadEncoder, 250);
+
 			frontLeft.EnableControl();
+			backLeft.EnableControl(); //Enable control of Jaguars
 			frontRight.EnableControl();
 			backRight.EnableControl();
-			*/
+
+			jawWheels.SetVoltageMode();
+			jawWheels.EnableControl();
+
 			gyroAI.SetAverageBits(2);
 			gyroAI.SetOversampleBits(4);
+
+			frame = imaqCreateImage(IMAQ_IMAGE_RGB, 0);
+
+			IMAQdxOpenCamera("cam0", IMAQdxCameraControlModeController, &session);
+			IMAQdxConfigureGrab(session);
 		}
 
 		/**
@@ -71,7 +87,7 @@ class Robot: public SampleRobot
 			timer.Reset();
 			timer.Start();
 			robotDrive.SetSafetyEnabled(false);
-			//robotDrive.SetMaxOutput(250);
+			robotDrive.SetMaxOutput(250);
 			gyro.Reset();
 
 			SmartDashboard::PutNumber("H_Value_Min", 35);
@@ -92,7 +108,7 @@ class Robot: public SampleRobot
 			float y;
 			float z;
 
-			int picCount = 0;
+			// int picCount = 0;
 
 			float gyroChangeRate;
 
@@ -119,8 +135,16 @@ class Robot: public SampleRobot
 
 			//-------------------------------------------------------------------//
 
+//			CameraServer::GetInstance()->SetQuality(50);
+//			CameraServer::GetInstance()->StartAutomaticCapture("cam0");
+
+			IMAQdxStartAcquisition(session);
+
+
 			while (IsOperatorControl() && IsEnabled())
 			{
+				IMAQdxGrab(session, frame, true, NULL);
+				CameraServer::GetInstance()->SetImage(frame);
 				//--------------------------------------------------------------------------------
 				/*if(camera.IsFreshImage())
 				{
@@ -165,7 +189,7 @@ class Robot: public SampleRobot
 
 	        	// Use the joystick X axis for lateral movement, Y axis for forward movement, and Z axis for rotation.
 	        	// This sample does not use field-oriented drive, so the gyro input is set to zero.
-				x = -moveStick.GetX();
+				x = moveStick.GetX();
 				y = -moveStick.GetTwist();
 				z = -moveStick.GetY();
 
@@ -227,22 +251,17 @@ class Robot: public SampleRobot
 				// Controls the elevator
 				if((xboxStick.GetPOV() == 45) || (xboxStick.GetPOV() == 315) || (xboxStick.GetPOV() == 0))
 				{
-					//relay.Set(relay.kOn);
-					//elevator.Set(elevator.kForward);
-					backRight.Set(1.0);
+					elevator.Set(1.0);
 					SmartDashboard::PutString("Spike Status:", "Forward");
 				}
 				else if((xboxStick.GetPOV() == 225) || (xboxStick.GetPOV() == 135) || (xboxStick.GetPOV() == 180))
 				{
-					//relay.Set(relay.kOn);
-					//elevator.Set(elevator.kReverse);
-					backRight.Set(-1.0);
+					elevator.Set(-1.0);
 					SmartDashboard::PutString("Spike Status:", "Reverse");
 				}
 				else// if (xboxStick.GetPOV() == -1)
 				{
-					//elevator.Set(elevator.kOff);
-					backRight.Set(0.0);
+					elevator.Set(0.0);
 					SmartDashboard::PutString("Spike Status:", "None");
 				}
 
@@ -251,31 +270,67 @@ class Robot: public SampleRobot
 				// Controls the wheels on the jaws
 				if(xboxStick.GetRawButton(5))
 				{
-					backLeft.Set(1.0);
+					jawWheels.Set(10.0);
+					SmartDashboard::PutString("Jaw Wheel Status:", "Pulling");
 				}
 				else if(xboxStick.GetRawButton(6))
 				{
-					backLeft.Set(-1.0);
+					jawWheels.Set(-10.0);
+					SmartDashboard::PutString("Jaw Wheel Status:", "Pushing");
 				}
 				else
 				{
-					backLeft.Set(0.0);
+					jawWheels.Set(0.0);
+					SmartDashboard::PutString("Jaw Wheel Status:", "None");
 				}
 
 				//---------------------------------------------------------------//
 
-				// Controls thhe jaws
+				// Controls the jaws
 				if(xboxStick.GetRawButton(2))
 				{
-					frontRight.Set(0.5);
+					jaws.Set(jaws.kForward);
+					SmartDashboard::PutString("Jaw Status:", "Grabbing");
 				}
 				else if(xboxStick.GetRawButton(3))
 				{
-					frontRight.Set(-0.5);
+					if((leftJawSwitch.Get() == false) && (rightJawSwitch.Get() == false))
+					{
+						jaws.Set(jaws.kReverse);
+						SmartDashboard::PutString("Jaw Status:", "Releasing");
+					}
+					else
+					{
+						jaws.Set(jaws.kOff);
+						SmartDashboard::PutString("Jaw Status:", "Limit Hit");
+					}
 				}
 				else
 				{
-					frontRight.Set(0.0);
+					jaws.Set(jaws.kOff);
+					SmartDashboard::PutString("Jaw Status:", "None");
+				}
+
+				//---------------------------------------------------------------//
+
+				//Controls the flippers
+				if(xboxStick.GetRawButton(4))
+				{
+					rightFlipper.Set(rightFlipper.kForward);
+					leftFlipper.Set(leftFlipper.kForward);
+					SmartDashboard::PutString("Flipper Status:", "Flipping");
+				}
+				else if(xboxStick.GetRawButton(1))
+				{
+					rightFlipper.Set(rightFlipper.kReverse);
+					leftFlipper.Set(leftFlipper.kReverse);
+					SmartDashboard::PutString("Flipper Status:", "Downing");
+				}
+				else
+				{
+					rightFlipper.Set(rightFlipper.kOff);
+					leftFlipper.Set(leftFlipper.kOff);
+					SmartDashboard::PutString("Flipper Status:", "None");
 				}
 
 				//---------------------------------------------------------------//
@@ -287,28 +342,13 @@ class Robot: public SampleRobot
 					z = z/2;
 				}
 
-
-				//UNCOMMENT AFTER GRABBING TESTING!!!!!!!!!!!!!!!!
-				//robotDrive.MecanumDrive_Cartesian(x, y, z);
+				robotDrive.MecanumDrive_Cartesian(x, y, z);
 
 
 				SmartDashboard::PutNumber("Front Left Value", frontLeft.Get());
 				SmartDashboard::PutNumber("Front Right Value", frontRight.Get());
 				SmartDashboard::PutNumber("Back Left Value", backLeft.Get());
 				SmartDashboard::PutNumber("Back Right Value", backRight.Get());
-
-				if(xboxStick.GetRawButton(7))
-				{
-					servo1.SetAngle(1.0);
-				}
-				else if(xboxStick.GetRawButton(8))
-				{
-					servo1.SetAngle(0.0);
-				}
-				else
-				{
-					servo1.SetAngle(.5);
-				}
 
 				//-------------------------------------------------------------//
 
@@ -319,21 +359,10 @@ class Robot: public SampleRobot
 				SmartDashboard::PutNumber("Gyro Voltage", gyroAI.GetVoltage());
 				SmartDashboard::PutNumber("Gyro.GetRate", gyro.GetRate());
 
-				/*if(stick2.GetRawButton(6))
-				{
-					Victor2.Set(1.0);
-				}
-				else if (stick2.GetRawAxis(3) >= 0.5)
-				{
-					Victor2.Set(-1.0);
-				}
-				else
-				{
-					Victor2.Set(0);
-				}*/
-
 				Wait(0.005); // wait 5ms to avoid hogging CPU cycles
 			}
+
+			IMAQdxStopAcquisition(session);
 		}
 
 		void Autonomous()
@@ -345,29 +374,35 @@ class Robot: public SampleRobot
 
 			while (IsAutonomous() && IsEnabled())
 			{
-				img = new ColorImage(IMAQ_IMAGE_RGB);
 
-				if(camera.GetImage(img) == 1)
+				if (camera.IsFreshImage())
 				{
-					if(img->GetHeight() != 0)
-					{
-						modifiedImg = img->ThresholdHSL(yellowToteThresholdHSL);
-						modifiedImg = modifiedImg->ConvexHull(false);
+					img = new ColorImage(IMAQ_IMAGE_RGB);
 
-						//Below is an ugly function call which returns the width of the largest yellow object
-						if (modifiedImg->GetNumberParticles() > 0)
+					if(camera.GetImage(img) == 1)
+					{
+						if(img->GetHeight() != 0)
 						{
-							SmartDashboard::PutString("Largest Particle Dimensions", std::to_string(modifiedImg->GetOrderedParticleAnalysisReports()->at(0).boundingRect.width) + " x " + std::to_string(modifiedImg->GetOrderedParticleAnalysisReports()->at(0).boundingRect.height) + " pixels");
+							modifiedImg = img->ThresholdHSL(yellowToteThresholdHSL);
+							modifiedImg = modifiedImg->ConvexHull(false);
+
+							// Below is an ugly function call which returns the dimensions of
+							// the largest yellow object
+							if (modifiedImg->GetNumberParticles() > 0)
+							{
+								SmartDashboard::PutString("Largest Particle Dimensions", std::to_string(modifiedImg->GetOrderedParticleAnalysisReports()->at(0).boundingRect.width) + " x " + std::to_string(modifiedImg->GetOrderedParticleAnalysisReports()->at(0).boundingRect.height) + " pixels");
+								SmartDashboard::PutString("Particle Location", std::to_string(modifiedImg->GetOrderedParticleAnalysisReports()->at(0).boundingRect.left) + ", " + std::to_string(modifiedImg->GetOrderedParticleAnalysisReports()->at(0).boundingRect.top));
+								SmartDashboard::PutNumber("Ratio of Width to Height", float(float(modifiedImg->GetOrderedParticleAnalysisReports()->at(0).boundingRect.width)/float(modifiedImg->GetOrderedParticleAnalysisReports()->at(0).boundingRect.height)));
+							}
 						}
 					}
-				}
 
-				delete img;
+					delete img;
+				}
 
 				Wait(0.05);
 			}
 		}
-
 	};
 
 	START_ROBOT_CLASS(Robot);
