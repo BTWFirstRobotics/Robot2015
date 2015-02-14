@@ -372,7 +372,7 @@ class Robot: public SampleRobot
 			ColorImage* img;
 			BinaryImage* modifiedImg;
 
-			while (IsAutonomous() && IsEnabled())
+			while (IsAutonomou`s() && IsEnabled())
 			{
 
 				if (camera.IsFreshImage())
@@ -406,3 +406,11 @@ class Robot: public SampleRobot
 	};
 
 	START_ROBOT_CLASS(Robot);
+	/*
+	 * AUTONOMOUS MODE IDEAS
+	 * 1. grab tote 1st, drive to auto zone, drop tote, sit END
+	 * 2. grab tote 1st, drive to auto zone, spin at medium speed until robot finds tote, move towards tote, drop tote on allied tote END
+	 * 3. grab tote 1st, wait for some time, if we see a tote in auto zone drive to it and place our tote, if not drive forward and place tote in auto zone END
+	 * 4.
+	 */
+
