@@ -412,5 +412,6 @@ class Robot: public SampleRobot
 	 * 2. grab tote 1st, drive to auto zone, spin at medium speed until robot finds tote, move towards tote, drop tote on allied tote END
 	 * 3. grab tote 1st, wait for some time, if we see a tote in auto zone drive to it and place our tote, if not drive forward and place tote in auto zone END
 	 * 4. something, sam won't recognize my superior troubleshooting skills when it comes to GitHub
+	 * 5. sam is dumb
 	 */
 
